@@ -3,6 +3,9 @@ import json
 import socket
 from flask import Flask, request, jsonify
 import os
+from clip_detector import Clip_detector
+import threading
+import time
 
 class Server:
     def __init__(self, client_IP, client_port = 3000, server_port = 3000):
@@ -31,6 +34,8 @@ class Server:
         self.server_IP = server_IP
 
 app = Flask(__name__)
+my_detector = Clip_detector()
+count = 0
 
 @app.route('/', methods = ['POST'])
 def upload_file():
@@ -44,18 +49,30 @@ def upload_file():
     if file:
         filename = file.filename
         file.save(os.path.join('./images',filename))
-        message = process()
-        return message, 200
+        message = process(os.path.join('./images',filename))
+        return message
 
-def process():
-    print("process the pic here!")
-    return jsonify({'message:':' hello!'})
+def process(file_path):
+    global count
+    result = my_detector.run(file_path, visualize=True, save_name=f'receive_p{count}.jpg')
+    count += 1
+    if result[0] == 0:
+        pass
+    else:
+        result = result.tolist()
+    return jsonify({'result': result})
+
+def repeat_every_5_sec():
+    while True:
+        try:
+            my_server = Server(client_IP)
+        except Exception as e:
+            pass
+        time.sleep(5)
 
 if __name__ == '__main__':
-    client_IP = "192.168.128.156"
-    try:
-        my_server = Server(client_IP)
-    except Exception as e:
-        print("didn't send IP!")
+    client_IP = "192.168.43.84"
+    thread = threading.Thread(target = repeat_every_5_sec)
+    thread.start()
     app.run(host='0.0.0.0',port = 3000, debug=True)
     

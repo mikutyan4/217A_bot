@@ -8,16 +8,18 @@ import random
 
 class Detector:
     def __init__(self):
-        PATH_TO_MODEL_DIR = './detection/ssd_mobilenet_v2_320x320_coco17_tpu-8/saved_model'
-        self.PATH_TO_MODEL_DIR = PATH_TO_MODEL_DIR
-        self.detect_fn = tf.saved_model.load(PATH_TO_MODEL_DIR)
-        print("detection model loaded!")
+        device = '/GPU:0' if tf.config.list_physical_devices('GPU') else '/CPU:0'
+        with tf.device(device):
+            PATH_TO_MODEL_DIR = './detection/ssd_mobilenet_v2_320x320_coco17_tpu-8/saved_model'
+            self.PATH_TO_MODEL_DIR = PATH_TO_MODEL_DIR
+            self.detect_fn = tf.saved_model.load(PATH_TO_MODEL_DIR)
+            print("detection model loaded!")
 
     def run(self, image_path, visualize = False, save_name = 'result3.png'):
         boxes = self.forward(image_path)
-        box = self.filter(boxes)
+        box = box[0]
         if visualize:
-            visualize(box, image_path, save_name)
+            self.visualize(box, image_path, save_name)
             return box
         else:
             return box
@@ -29,35 +31,35 @@ class Detector:
         input_tensor = input_tensor[tf.newaxis, ...]
         detections = self.detect_fn(input_tensor)
         boxes = detections['detection_boxes'][0].numpy()
-        return boxes[0:10]
+        return self.filter_origin(boxes)
 
-    def filter(self, boxes):
+    def filter_origin(self, boxes):
         proposal = []
         for box in boxes:
             if self.area_check(box) and self.ratio_check(box):
                 proposal.append(box)
-        return proposal[random.randint(0,len(proposal)-1)]
+        return proposal
 
     def visualize(self, box, image_path, save_name = 'result2.png'):
         img = Image.open(image_path)
         draw = ImageDraw.Draw(img)
         width, height = img.size
-        top_left = (box[0]*height, box[1]*width)
-        bottom_right = (box[2]*height, box[3]*width)
+        top_left = (box[1]*width, box[0]*height)
+        bottom_right = (box[3]*width, box[2]*height)
         draw.rectangle([top_left, bottom_right], outline = 'red')
         plt.figure(figsize=(10, 10))
         plt.imshow(img)
         plt.savefig(save_name)
         print(f"picture saved as {save_name}")
 
-    def area_check(self, box, min = 0.01, max = 0.1):
+    def area_check(self, box, min = 0.005, max = 0.05):
         area = (box[2]-box[0])*(box[3]-box[1])
         if area <= min or area >= max:
             return False
         else:
             return True
 
-    def ratio_check(self, box, min = 0.2, max =0.6):
+    def ratio_check(self, box, min = 0.15, max =0.9):
         width = box[3] - box[1]
         height = box[2] - box[0]
         ratio = width / height
