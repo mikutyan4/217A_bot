@@ -61,7 +61,7 @@ def process(file_path):
     global count
     global with_detector
     if with_detector:
-        result = my_detector.run(file_path, visualize=True, save_name=f'receive_p{count}.jpg')
+        result = my_detector.run(file_path, visualize=True, save_name=f'./images/receive_p{count}.jpg')
         count += 1
         if result[0] == 0:
             pass
