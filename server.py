@@ -95,8 +95,7 @@ def receive_broadcast(port=37020):
 if __name__ == '__main__':
     #if if don't work, set client IP here
     client_IP = receive_broadcast()
-    
     thread = threading.Thread(target = repeat_every_5_sec)
     thread.start()
-    app.run(host='0.0.0.0',port = 3000, debug=True)
+    app.run(host='0.0.0.0',port = 3000, debug=False)
     
