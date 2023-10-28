@@ -33,8 +33,13 @@ class Server:
             s.close()
         self.server_IP = server_IP
 
+#set this configuration!
+with_detector = True
 app = Flask(__name__)
-my_detector = Clip_detector()
+if with_detector:
+    my_detector = Clip_detector()
+else:
+    pass
 count = 0
 
 @app.route('/', methods = ['POST'])
@@ -54,13 +59,17 @@ def upload_file():
 
 def process(file_path):
     global count
-    result = my_detector.run(file_path, visualize=True, save_name=f'receive_p{count}.jpg')
-    count += 1
-    if result[0] == 0:
-        pass
+    global with_detector
+    if with_detector:
+        result = my_detector.run(file_path, visualize=True, save_name=f'receive_p{count}.jpg')
+        count += 1
+        if result[0] == 0:
+            pass
+        else:
+            result = result.tolist()
+        return jsonify({'result': result})
     else:
-        result = result.tolist()
-    return jsonify({'result': result})
+        return jsonify({'result': [0,0,0,0]})
 
 def repeat_every_5_sec():
     while True:
@@ -70,8 +79,23 @@ def repeat_every_5_sec():
             pass
         time.sleep(5)
 
+def receive_broadcast(port=37020):
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    sock.bind(('', port))
+    print('listening!')
+    while True:
+        message, addr = sock.recvfrom(1024)
+        message = message.decode('utf-8')
+        print(f"The robot is: {addr[0]}")
+        if message == "217A_bot":
+            return addr[0]
+
+
 if __name__ == '__main__':
-    client_IP = "192.168.43.84"
+    #if if don't work, set client IP here
+    client_IP = receive_broadcast()
+    
     thread = threading.Thread(target = repeat_every_5_sec)
     thread.start()
     app.run(host='0.0.0.0',port = 3000, debug=True)
