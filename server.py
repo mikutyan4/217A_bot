@@ -34,7 +34,7 @@ class Server:
         self.server_IP = server_IP
 
 #set this configuration!
-with_detector = True
+with_detector = False
 app = Flask(__name__)
 if with_detector:
     my_detector = Clip_detector()
@@ -91,11 +91,15 @@ def receive_broadcast(port=37020):
         if message == "217A_bot":
             return addr[0]
 
-
+def getIP():
+    global client_IP
+    client_IP = receive_broadcast()
 if __name__ == '__main__':
     #if if don't work, set client IP here
-    client_IP = receive_broadcast()
+    client_IP = input("input our client IP, enter to auto connect:") #it is the default IP
+    thread_receive_client_IP = threading.Thread(target = getIP)
     thread = threading.Thread(target = repeat_every_5_sec)
+    thread_receive_client_IP.start()
     thread.start()
     app.run(host='0.0.0.0',port = 3000, debug=False)
     
